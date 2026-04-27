@@ -1,46 +1,72 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+type Task = {
+  id: number;
+  text: string;
+};
 
 export default function Home() {
-  const [tasks, setTasks] = useState<string[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [input, setInput] = useState<string>("");
 
-  const addTask = () => {
+  const loadTasks = async () => {
+    const res = await fetch("/api/tasks");
+    const data: Task[] = await res.json();
+    setTasks(data);
+  };
+
+  useEffect(() => {
+    loadTasks();
+  }, []);
+
+  const addTask = async () => {
     if (!input.trim()) return;
-    setTasks((prev) => [...prev, input]);
+
+    const res = await fetch("/api/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: input }),
+    });
+
+    const newTask: Task = await res.json();
+
+    setTasks((prev) => [...prev, newTask]);
     setInput("");
   };
 
-  const removeTask = (index: number) => {
-    setTasks((prev) => prev.filter((_, i) => i !== index));
+  const removeTask = async (id: number) => {
+    await fetch("/api/tasks", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+
+    setTasks((prev) => prev.filter((t) => t.id !== id));
   };
 
   return (
-    <main className="container">
-      <h1>🚀 My Simple Next App (TSX)</h1>
+    <main style={{ padding: 20 }}>
+      <h1>Todo App (TSX + API memory ⚠️)</h1>
 
-      <div className="card">
-        <h2>Todo List</h2>
-
-        <div className="row">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Add a task..."
-          />
-          <button onClick={addTask}>Add</button>
-        </div>
-
-        <ul>
-          {tasks.map((task, index) => (
-            <li key={index}>
-              {task}
-              <button onClick={() => removeTask(index)}>❌</button>
-            </li>
-          ))}
-        </ul>
+      <div>
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Task..."
+        />
+        <button onClick={addTask}>Add</button>
       </div>
+
+      <ul>
+        {tasks.map((t) => (
+          <li key={t.id}>
+            {t.text}
+            <button onClick={() => removeTask(t.id)}>❌</button>
+          </li>
+        ))}
+      </ul>
     </main>
   );
 }
