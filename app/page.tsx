@@ -1,60 +1,62 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 type Task = {
-  id: number;
-  text: string;
+  id: string;
+  task_name: string;
+  created_at: string;
 };
 
 export default function Home() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [input, setInput] = useState<string>("");
+  const [input, setInput] = useState("");
 
-  const loadTasks = async () => {
-    const res = await fetch("/api/tasks");
-    const data: Task[] = await res.json();
-    setTasks(data);
+  const loadTasks = async (): Promise<void> => {
+    const { data, error } = await supabase
+      .from("tasks")
+      .select("id, task_name, created_at")
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      setTasks(data);
+    }
   };
 
   useEffect(() => {
     loadTasks();
   }, []);
 
-  const addTask = async () => {
+  const addTask = async (): Promise<void> => {
     if (!input.trim()) return;
 
-    const res = await fetch("/api/tasks", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: input }),
-    });
+    const { data, error } = await supabase
+      .from("tasks")
+      .insert({ task_name: input })
+      .select()
+      .single();
 
-    const newTask: Task = await res.json();
-
-    setTasks((prev) => [...prev, newTask]);
-    setInput("");
+    if (!error && data) {
+      setTasks((prev) => [data, ...prev]);
+      setInput("");
+    }
   };
 
-  const removeTask = async (id: number) => {
-    await fetch("/api/tasks", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
-    });
-
+  const removeTask = async (id: string): Promise<void> => {
+    await supabase.from("tasks").delete().eq("id", id);
     setTasks((prev) => prev.filter((t) => t.id !== id));
   };
 
   return (
     <main style={{ padding: 20 }}>
-      <h1>Todo App (TSX + API memory ⚠️)</h1>
+      <h1>Todo App (Supabase + UUID ✅)</h1>
 
       <div>
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Task..."
+          placeholder="Nouvelle tâche..."
         />
         <button onClick={addTask}>Add</button>
       </div>
@@ -62,7 +64,7 @@ export default function Home() {
       <ul>
         {tasks.map((t) => (
           <li key={t.id}>
-            {t.text}
+            {t.task_name}
             <button onClick={() => removeTask(t.id)}>❌</button>
           </li>
         ))}
@@ -70,3 +72,4 @@ export default function Home() {
     </main>
   );
 }
+``
