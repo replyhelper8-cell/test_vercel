@@ -1,22 +1,34 @@
 "use client";
 
+import { redirect } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+
 
 type Task = {
   id: string;
   task_name: string;
   created_at: string;
+  user_id: string;
 };
 
-export default function Home() {
+export default async function Home() {
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [input, setInput] = useState("");
 
   const loadTasks = async (): Promise<void> => {
     const { data, error } = await supabase
       .from("tasks")
-      .select("id, task_name, created_at")
+      .select("*")
       .order("created_at", { ascending: false });
 
     if (!error && data) {
@@ -33,7 +45,7 @@ export default function Home() {
 
     const { data, error } = await supabase
       .from("tasks")
-      .insert({ task_name: input })
+      .insert({ task_name: input, user_id: user.id })
       .select()
       .single();
 
@@ -72,4 +84,3 @@ export default function Home() {
     </main>
   );
 }
-``
