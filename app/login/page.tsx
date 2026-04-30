@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from "@/lib/supabase/browserClient";
 import { useRouter } from "next/navigation";
+
+const supabase = await createClient();
 
 export default function Login() {
     const router = useRouter();
@@ -25,7 +27,6 @@ export default function Login() {
         if (error) {
             setError(error.message);
         } else {
-            console.log("login ok");
             router.push("/");
         }
     };
